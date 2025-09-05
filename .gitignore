@@ -1,0 +1,49 @@
+# Arquivos Python compilados
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ambiente virtual
+venv/
+env/
+.venv/
+.env/
+
+# Configurações do VS Code
+.vscode/
+
+# Arquivos de log
+*.log
+
+# Arquivos de banco de dados
+*.sqlite3
+*.db
+
+# Arquivos de pacotes
+*.egg
+*.egg-info/
+dist/
+build/
+*.manifest
+*.spec
+
+# Arquivos de configuração de ambiente
+.env
+*.env
+
+# Arquivos de cache
+.cache/
+*.cache
+
+# Jupyter Notebooks checkpoints
+.ipynb_checkpoints/
+
+# Pasta de testes
+htmlcov/
+.coverage
+.tox/
+.pytest_cache/
+
+# Outros
+.DS_Store
+Thumbs.db
