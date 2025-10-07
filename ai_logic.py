@@ -13,9 +13,39 @@ def generate_sql(user_question):
     Tabela 'produtos':
     - id_produto (INTEGER, CHAVE PRIMÁRIA)
     - nome_produto (TEXT)
-    - tipo (TEXT)
+    - tipo (TEXT) - valores possíveis: 'Descartável', 'Limpeza', 'Higiene', 'Escritório'
     - quantidade (INTEGER)
     - preco (REAL)
+
+    EXEMPLOS:
+    Pergunta: "Lista todos os produtos"
+    SQL: SELECT * FROM produtos;
+
+    Pergunta: "Produtos de limpeza"
+    SQL: SELECT * FROM produtos WHERE tipo = 'Limpeza';
+
+    Pergunta: "Produtos com quantidade maior que 100"
+    SQL: SELECT * FROM produtos WHERE quantidade > 100;
+
+    Pergunta: "Produtos mais caros que 5 reais"
+    SQL: SELECT * FROM produtos WHERE preco > 5.0;
+
+    Pergunta: "Produtos que são sacos de lixo" ou "sacos de lixo"
+    SQL: SELECT * FROM produtos WHERE nome_produto LIKE '%Saco%';
+
+    Pergunta: "Produtos com nome contendo copo"
+    SQL: SELECT * FROM produtos WHERE nome_produto LIKE '%Copo%';
+
+    Pergunta: "Produtos do mais caro para o mais barato" ou "ordenar por preço decrescente"
+    SQL: SELECT * FROM produtos ORDER BY preco DESC;
+
+    Pergunta: "Produtos do mais barato para o mais caro" ou "ordenar por preço crescente"  
+    SQL: SELECT * FROM produtos ORDER BY preco ASC;
+
+    REGRAS IMPORTANTES: 
+    - Para buscar por nome específico de produto, use LIKE '%palavra%'
+    - Para ordenação, use ORDER BY sem LIMIT (a menos que seja explicitamente pedido apenas alguns itens)
+    - DESC = decrescente (maior para menor), ASC = crescente (menor para maior)
     """
     try:
         response = ollama.chat(
