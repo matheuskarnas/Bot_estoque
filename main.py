@@ -2,6 +2,11 @@ from database import setup_database, execute_sql_query
 from ai_logic import generate_sql
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+import os
+from dotenv import load_dotenv
+
+# Carrega as variáveis de ambiente
+load_dotenv()
 
 
 # --- FUNÇÕES DO TELEGRAM BOT ---
@@ -12,10 +17,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Lida com as mensagens do usuário, processa com a IA e responde."""
+    # Verificação de segurança
+    if not update.message or not update.message.text:
+        return
+    
     user_question = update.message.text
     
     # 1. Gera o SQL com a IA.
     sql_query = generate_sql(user_question)
+    print(f"🤖 Pergunta: {user_question}")
+    print(f"🔍 SQL gerado: {repr(sql_query)}")
     
     # 2. Limpa o SQL.
     start_index = sql_query.upper().find("SELECT")
@@ -29,10 +40,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
 
     # 3. Executa a consulta no banco de dados.
+    print(f"📊 Executando SQL: {sql_query}")
     cursor, db_result = execute_sql_query(sql_query)
+    print(f"✅ Resultado: {db_result}")
     
     # 4. Formata a resposta para o usuário.
     if isinstance(db_result, str) and db_result.startswith("Erro"):
+        print(f"❌ Erro detectado: {db_result}")
         response_text = "Desculpe, ocorreu um erro ao executar a consulta. Por favor, tente novamente com uma pergunta mais específica."
     elif not db_result:
         response_text = "Nenhum resultado encontrado para a sua busca."
@@ -51,7 +65,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 def main():
     """Inicia o bot."""
-    TELEGRAM_BOT_TOKEN = "SEU_TOKEN_AQUI"  # Substitua pelo token do seu bot do telegram
+    # Primeiro tenta usar a variável de ambiente, senão usa o token direto
+    TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "8465048987:AAEaVEaD9T1mdmX1hzQ6oQHdQxs7q-qD5vs")
 
     # Crie o banco de dados de estoque
     setup_database()
