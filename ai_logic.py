@@ -1,4 +1,7 @@
+import os
+import re
 import ollama
+
 
 def generate_sql(user_question):
     """Gera uma consulta SQL com a IA (Ollama/Qwen) para o banco de estoque."""
@@ -47,14 +50,61 @@ def generate_sql(user_question):
     - Para ordenação, use ORDER BY sem LIMIT (a menos que seja explicitamente pedido apenas alguns itens)
     - DESC = decrescente (maior para menor), ASC = crescente (menor para maior)
     """
+    model_name = os.getenv('OLLAMA_MODEL', 'qwen3:1.7b')
     try:
         response = ollama.chat(
-            model='qwen',
+            model=model_name,
             messages=[
                 {'role': 'system', 'content': system_prompt},
                 {'role': 'user', 'content': user_question}
-            ]
+            ],
+            options={'temperature': 0.0}
         )
-        return response['message']['content']
+        raw = response['message']['content']
+
+        def extract_sql(text: str) -> str | None:
+            if not text:
+                return None
+            # Remove code fences and common wrapper tags
+            text = re.sub(r'```(?:sql)?', '', text, flags=re.IGNORECASE)
+            text = re.sub(r'</?think>', '', text, flags=re.IGNORECASE)
+            # Remove any markdown backticks
+            text = text.replace('`', '')
+            # Try to find the first SELECT ...; block
+            m = re.search(r"(SELECT\b[\s\S]*?;)", text, re.IGNORECASE)
+            if m:
+                return m.group(1).strip()
+            # If no semicolon, try to capture from SELECT to end of line/block
+            m2 = re.search(r"(SELECT\b[\s\S]*)", text, re.IGNORECASE)
+            if m2:
+                return m2.group(1).strip()
+            return None
+
+        sql = extract_sql(raw)
+        if sql:
+            return sql
+
+        # Retry once with a stricter instruction if model didn't return SQL
+        retry_user = (
+            "O modelo anterior não retornou apenas a consulta SQL.\n"
+            "Responda APENAS com a consulta SQL válida para a pergunta a seguir, nada mais:\n\n"
+            f"{user_question}"
+        )
+        response2 = ollama.chat(
+            model=model_name,
+            messages=[
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user', 'content': retry_user}
+            ],
+            options={'temperature': 0.0}
+        )
+        raw2 = response2['message']['content']
+        sql2 = extract_sql(raw2)
+        if sql2:
+            return sql2
+
+        # Se ainda não houver SQL, retorna erro com parte da resposta para debug
+        preview = (raw2 or raw or '')[:300]
+        return f"Erro ao gerar SQL: modelo não retornou SQL. Resposta do modelo: {preview}"
     except Exception as e:
         return f"Erro ao gerar SQL: {e}"

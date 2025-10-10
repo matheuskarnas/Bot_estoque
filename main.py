@@ -1,5 +1,6 @@
 from database import setup_database, execute_sql_query
 from ai_logic import generate_sql
+import re
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 import os
@@ -28,16 +29,24 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     print(f"🤖 Pergunta: {user_question}")
     print(f"🔍 SQL gerado: {repr(sql_query)}")
     
-    # 2. Limpa o SQL.
-    start_index = sql_query.upper().find("SELECT")
-    if start_index != -1:
-        cleaned_sql = sql_query[start_index:].strip()
-        if cleaned_sql.endswith(';'):
-            cleaned_sql = cleaned_sql[:-1]
-        sql_query = cleaned_sql
+    # 2. Limpa o SQL: extrai apenas a PRIMEIRA instrução SELECT para evitar múltiplas statements
+    raw_ai = sql_query or ""
+    # Procura a primeira instrução SELECT que termine em ponto-e-vírgula
+    m = re.search(r"(SELECT\b[\s\S]*?;)", raw_ai, re.IGNORECASE)
+    if m:
+        sql_query = m.group(1).strip()
     else:
-        await update.message.reply_text("Desculpe, não consegui gerar uma consulta SQL válida para a sua pergunta.")
-        return
+        # Se não houver ponto-e-vírgula, tenta pegar a primeira linha que contenha SELECT
+        m2 = re.search(r"(SELECT\b.*)", raw_ai, re.IGNORECASE)
+        if m2:
+            sql_query = m2.group(1).strip().splitlines()[0]
+        else:
+            await update.message.reply_text("Desculpe, não consegui gerar uma consulta SQL válida para a sua pergunta.")
+            return
+
+    # Remover ponto-e-vírgula final se existir (sqlite3.execute não precisa dele)
+    if sql_query.endswith(';'):
+        sql_query = sql_query[:-1].strip()
 
     # 3. Executa a consulta no banco de dados.
     print(f"📊 Executando SQL: {sql_query}")
